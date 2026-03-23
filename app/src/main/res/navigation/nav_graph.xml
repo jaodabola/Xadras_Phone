@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <!-- ── Auth ──────────────────────────────────────────────────────────── -->
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.xadras.app.ui.auth.LoginFragment"
+        android:label="Xadras"
+        tools:layout="@layout/fragment_login">
+
+        <action android:id="@+id/action_login_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+
+        <action android:id="@+id/action_login_to_register"
+            app:destination="@id/registerFragment" />
+
+        <!-- Guest: jump straight to camera (local mode) -->
+        <action android:id="@+id/action_login_to_camera"
+            app:destination="@id/cameraFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.xadras.app.ui.auth.RegisterFragment"
+        android:label="Criar conta"
+        tools:layout="@layout/fragment_register">
+
+        <action android:id="@+id/action_register_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- ── Home ──────────────────────────────────────────────────────────── -->
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.xadras.app.ui.home.HomeFragment"
+        android:label="Início"
+        tools:layout="@layout/fragment_home">
+
+        <action android:id="@+id/action_home_to_camera"
+            app:destination="@id/cameraFragment" />
+
+        <action android:id="@+id/action_home_to_tournament"
+            app:destination="@id/tournamentFragment" />
+
+        <action android:id="@+id/action_home_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- ── Camera ─────────────────────────────────────────────────────────── -->
+
+    <fragment
+        android:id="@+id/cameraFragment"
+        android:name="com.xadras.app.ui.camera.CameraFragment"
+        android:label="Tabuleiro"
+        tools:layout="@layout/fragment_camera">
+
+        <!-- Safe-args arguments -->
+        <argument android:name="gameId"    app:argType="integer" android:defaultValue="-1" />
+        <argument android:name="broadcast" app:argType="boolean" android:defaultValue="false" />
+    </fragment>
+
+    <!-- ── Tournaments ────────────────────────────────────────────────────── -->
+
+    <fragment
+        android:id="@+id/tournamentFragment"
+        android:name="com.xadras.app.ui.tournament.TournamentFragment"
+        android:label="Torneios"
+        tools:layout="@layout/fragment_tournament">
+
+        <action android:id="@+id/action_tournament_to_camera"
+            app:destination="@id/cameraFragment" />
+    </fragment>
+
+</navigation>

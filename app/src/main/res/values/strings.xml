@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Xadras</string>
+
+    <!-- Auth -->
+    <string name="login_title">Bem-vindo de volta</string>
+    <string name="login_subtitle">Inicie sessão para continuar a jogar</string>
+    <string name="label_username">Nome de utilizador</string>
+    <string name="label_password">Palavra-passe</string>
+    <string name="btn_login">Entrar</string>
+    <string name="btn_guest">Jogar como Convidado</string>
+    <string name="no_account">Não tem conta? Registar-se</string>
+    <string name="register_title">Criar conta</string>
+    <string name="btn_register">Criar conta</string>
+    <string name="have_account">Já tem conta? Iniciar sessão</string>
+
+    <!-- Home -->
+    <string name="welcome_back">Olá, %1$s</string>
+    <string name="btn_open_camera">Abrir câmara</string>
+    <string name="btn_tournaments">Ver torneios</string>
+    <string name="btn_logout">Sair</string>
+
+    <!-- Camera -->
+    <string name="camera_status_default">Aponte a câmara para o tabuleiro</string>
+    <string name="camera_btn_broadcast">▶ Transmitir</string>
+    <string name="camera_btn_stop">⏹ Parar transmissão</string>
+    <string name="camera_permission_denied">Permissão de câmara necessária</string>
+    <string name="camera_fen_waiting">Aguardando deteção…</string>
+
+    <!-- Tournaments -->
+    <string name="tournaments_empty">Nenhum torneio disponível</string>
+    <string name="btn_join">Entrar</string>
+</resources>

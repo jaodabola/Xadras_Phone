@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand colors — matching the Xadras website -->
+    <color name="brown_primary">#5C3D2E</color>
+    <color name="brown_light">#8B6355</color>
+    <color name="brown_dark">#3B2519</color>
+    <color name="background">#F5F0EB</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="text_primary">#1A1008</color>
+    <color name="text_secondary">#6B5B4E</color>
+    <color name="white">#FFFFFF</color>
+    <color name="green_online">#22C55E</color>
+    <!-- Chess board colors -->
+    <color name="board_light">#F0D9B5</color>
+    <color name="board_dark">#B58863</color>
+
+    <!-- Missing default colors referenced by themes -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+</resources>
