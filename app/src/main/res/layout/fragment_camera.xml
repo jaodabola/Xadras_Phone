@@ -16,7 +16,84 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Top status bar -->
+    <!-- A real AR Overlay View -->
+    <com.xadras.app.ui.camera.OverlayView
+        android:id="@+id/overlayView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:elevation="2dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ═══════════════════════════════════════════════════════
+         LOADING OVERLAY — shown while YOLO model loads
+         ═══════════════════════════════════════════════════════ -->
+    <FrameLayout
+        android:id="@+id/loadingOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#F0181210"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="10dp"
+        android:visibility="visible"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Chess board icon -->
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_loading_board"
+                android:alpha="0.9"
+                android:layout_marginBottom="24dp"
+                android:contentDescription="Tabuleiro" />
+
+            <!-- Loading title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="A preparar o tabuleiro..."
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Loading subtitle -->
+            <TextView
+                android:id="@+id/tvLoadingStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="A carregar o modelo de deteção"
+                android:textColor="#99FFFFFF"
+                android:textSize="13sp"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Progress bar -->
+            <ProgressBar
+                android:id="@+id/progressLoading"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/brown_light" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- ═══════════════════════════════════════════════════════
+         TOP STATUS BAR
+         ═══════════════════════════════════════════════════════ -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardStatus"
         android:layout_width="0dp"
@@ -31,38 +108,60 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="10dp"
-            android:gravity="center_vertical">
+            android:orientation="vertical"
+            android:padding="10dp">
 
-            <!-- Connected indicator dot -->
-            <View
-                android:id="@+id/indicatorConnected"
-                android:layout_width="10dp"
-                android:layout_height="10dp"
-                android:background="@drawable/circle_green"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Connected indicator dot -->
+                <View
+                    android:id="@+id/indicatorConnected"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:background="@drawable/circle_green"
+                    android:visibility="gone"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Aponte a câmara para o tabuleiro"
+                    android:textColor="@color/white"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvConfidence"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Tracker status (move number / turn / FEN state) -->
+            <TextView
+                android:id="@+id/tvTrackerStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#AAFFC107"
+                android:textSize="11sp"
                 android:visibility="gone"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
-                android:id="@+id/tvStatus"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Aponte a câmara para o tabuleiro"
-                android:textColor="@color/white"
-                android:textSize="13sp" />
-
-            <TextView
-                android:id="@+id/tvConfidence"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#88FFFFFF"
-                android:textSize="12sp" />
+                android:layout_marginTop="4dp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- Bottom controls -->
+    <!-- ═══════════════════════════════════════════════════════
+         (The DEBUG VIEW was removed to eliminate Top-Down bitmap lag)
+         ═══════════════════════════════════════════════════════ -->
+
+    <!-- ═══════════════════════════════════════════════════════
+         BOTTOM CONTROLS
+         ═══════════════════════════════════════════════════════ -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardControls"
         android:layout_width="0dp"
@@ -127,14 +226,35 @@
                 android:padding="10dp"
                 android:layout_marginBottom="12dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnToggleBroadcast"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="▶ Transmitir"
-                android:backgroundTint="@color/brown_primary"
-                android:textColor="@color/white"
-                android:padding="14dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnToggleBroadcast"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="▶ Transmitir"
+                    android:backgroundTint="@color/brown_primary"
+                    android:textColor="@color/white"
+                    android:padding="14dp" />
+
+                <!-- Reset button (new game) -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnResetTracker"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="↻"
+                    android:textSize="18sp"
+                    android:textColor="@color/white"
+                    app:strokeColor="#44FFFFFF"
+                    android:layout_marginStart="8dp"
+                    android:minWidth="48dp" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

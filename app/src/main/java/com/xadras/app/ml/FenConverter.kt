@@ -1,66 +1,84 @@
 package com.xadras.app.ml
 
+import android.graphics.Bitmap
+import android.graphics.Color
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
+/**
+ * Conversor de recortes de quadrados para notação FEN.
+ *
+ * Integra-se com o [FenTracker] para rastrear movimentos
+ * via deteção diferencial de ocupância e validação por regras de xadrez.
+ *
+ * Pipeline:
+ *   Frame → 64 quadrados → FenTracker.update() → FEN validado
+ *
+ * O FenTracker auto-calibra o threshold de ocupância no primeiro frame,
+ * usando o conhecimento de que ranks 1-2 e 7-8 estão ocupados
+ * e ranks 3-6 estão vazios na posição inicial.
+ */
 @Singleton
-class FenConverter @Inject constructor() {
+class FenConverter @Inject constructor(
+    private val tracker: FenTracker
+) {
+
+    /** Indica se o modelo de classificação de peças está disponível. */
+    private var pieceModelLoaded = false
 
     /**
-     * Convert an 8×8 board (array of [PieceLabels]) to a full FEN string.
+     * Processar um frame de 64 quadrados e atualizar o FEN.
      *
-     * @param board      8×8 array, board[0] = rank 8 (black's back rank)
-     * @param activeColor 'w' or 'b' — defaults to 'w' (white to move)
-     * @param castling   castling availability string (e.g. "KQkq")
-     * @param enPassant  en passant target square (e.g. "e3") or "-"
-     * @param halfMove   half-move clock (for 50-move rule)
-     * @param fullMove   full-move counter
+     * Delega ao FenTracker que:
+     * 1. Auto-calibra o threshold no primeiro frame
+     * 2. Deteta mudanças de ocupância frame-a-frame
+     * 3. Valida movimentos via chesslib
+     * 4. Atualiza o FEN interno
+     *
+     * @param squares Mapa de nome algébrico → recorte do quadrado
+     * @return String FEN atualizado
      */
-    fun toFen(
-        board: Array<IntArray>,
-        activeColor: Char = 'w',
-        castling: String = "KQkq",
-        enPassant: String = "-",
-        halfMove: Int = 0,
-        fullMove: Int = 1
-    ): String {
-        val ranks = mutableListOf<String>()
-
-        for (row in 0 until 8) {
-            val sb = StringBuilder()
-            var emptyCount = 0
-
-            for (col in 0 until 8) {
-                val label = board[row][col]
-                if (label == PieceLabels.EMPTY) {
-                    emptyCount++
-                } else {
-                    if (emptyCount > 0) {
-                        sb.append(emptyCount)
-                        emptyCount = 0
-                    }
-                    sb.append(PieceLabels.toFenChar(label))
-                }
-            }
-            if (emptyCount > 0) sb.append(emptyCount)
-            ranks.add(sb.toString())
-        }
-
-        val piecePlacement = ranks.joinToString("/")
-        return "$piecePlacement $activeColor $castling $enPassant $halfMove $fullMove"
+    fun toFen(squares: Map<String, SquareCrop>): String {
+        return tracker.update(squares) ?: tracker.currentFen
     }
 
     /**
-     * Quick check: does the detected board look like a valid chess position?
-     * Checks that both kings are present.
+     * Obter o FEN atual sem processar um novo frame.
      */
-    fun isValidPosition(board: Array<IntArray>): Boolean {
-        var whiteKings = 0
-        var blackKings = 0
-        for (row in board) for (cell in row) {
-            if (cell == PieceLabels.W_KING) whiteKings++
-            if (cell == PieceLabels.B_KING) blackKings++
-        }
-        return whiteKings == 1 && blackKings == 1
+    fun getCurrentFen(): String = tracker.currentFen
+
+    /**
+     * Obter texto de estado para mostrar na UI.
+     */
+    fun getStatusText(): String = tracker.statusText
+
+    /**
+     * Verificar se o tracker está calibrado e a rastrear.
+     */
+    fun isTracking(): Boolean = tracker.isCalibrated
+
+    /**
+     * Verificar se a posição detetada parece válida.
+     *
+     * Verifica se o número de quadrados é 64 — a validação
+     * real dos movimentos é feita pelo FenTracker via chesslib.
+     */
+    fun isValidPosition(squares: Map<String, SquareCrop>): Boolean {
+        return squares.size == 64
     }
+
+    /**
+     * Reset do tracker — volta à posição inicial.
+     * Útil quando se inicia um novo jogo.
+     */
+    fun reset() {
+        tracker.reset()
+    }
+
+    /**
+     * Indica se o modelo de classificação de peças está carregado.
+     * Enquanto não estiver, o FEN é gerado por deteção diferencial.
+     */
+    fun isPieceModelLoaded(): Boolean = pieceModelLoaded
 }

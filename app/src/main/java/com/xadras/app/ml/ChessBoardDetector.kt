@@ -3,111 +3,100 @@ package com.xadras.app.ml
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.support.common.FileUtil
-import org.tensorflow.lite.support.image.ImageProcessor
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.support.image.ops.ResizeOp
-import java.nio.ByteBuffer
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Piece label mapping — must match the order used when training the model.
- * Empty = 0, wP=1, wN=2, wB=3, wR=4, wQ=5, wK=6,
- *           bP=7, bN=8, bB=9, bR=10, bQ=11, bK=12
+ * Orquestrador do pipeline de deteção de tabuleiro.
+ *
+ * Inspirado no pipeline.py do Harmonica Chessboard.
+ * Cada passo é delegado a um componente especializado:
+ *
+ *   1. YoloBoardModel  — Inferência TFLite (YOLO segmentação)
+ *   2. MaskProcessor   — Máscara → 4 Cantos (approxPolyDP)
+ *   3. BoardStabilizer — EMA temporal + rejeição de saltos
+ *   4. BoardWarper     — Homografia → top-down → 64 quadrados
+ *
+ * Pipeline:
+ *   Frame → YOLO → Máscara → Cantos → Estabilizar → Warp → Quadrados
  */
-object PieceLabels {
-    const val EMPTY = 0
-    // white pieces
-    const val W_PAWN   = 1; const val W_KNIGHT = 2; const val W_BISHOP = 3
-    const val W_ROOK   = 4; const val W_QUEEN  = 5; const val W_KING   = 6
-    // black pieces
-    const val B_PAWN   = 7; const val B_KNIGHT = 8; const val B_BISHOP = 9
-    const val B_ROOK   = 10; const val B_QUEEN = 11; const val B_KING  = 12
-
-    fun toFenChar(label: Int): Char = when (label) {
-        W_PAWN -> 'P'; W_KNIGHT -> 'N'; W_BISHOP -> 'B'
-        W_ROOK -> 'R'; W_QUEEN  -> 'Q'; W_KING   -> 'K'
-        B_PAWN -> 'p'; B_KNIGHT -> 'n'; B_BISHOP -> 'b'
-        B_ROOK -> 'r'; B_QUEEN  -> 'q'; B_KING   -> 'k'
-        else   -> '.'
-    }
-}
-
-data class DetectionResult(
-    /** 8×8 array of piece label IDs, row 0 = rank 8 (black side) */
-    val board: Array<IntArray>,
-    val confidence: Float
-)
-
 @Singleton
 class ChessBoardDetector @Inject constructor(private val context: Context) {
 
-    // ⚠️ Place your trained model at: app/src/main/assets/chess.tflite
-    private val MODEL_FILE = "chess.tflite"
+    companion object {
+        private const val TAG = "BoardDetector"
+    }
 
-    // Input size expected by the model (adjust to match your training config)
-    private val INPUT_SIZE = 640
-    private val NUM_CLASSES = 13      // 0 (empty) + 12 piece types
-    private val GRID_SIZE = 8         // 8×8 board
+    // ─── Componentes do Pipeline ─────────────────────────────────────────────
+    private val yoloModel = YoloBoardModel(context)
+    private val maskProcessor = MaskProcessor(yoloModel)
+    private val stabilizer = BoardStabilizer()
+    private val warper = BoardWarper()
+    private val piecesClassifier = PiecesClassifier(context)
 
-    private var interpreter: Interpreter? = null
+    /** Último valor de confiança para debug na UI. */
+    val debugLastConfidence: Float get() = yoloModel.debugLastConfidence
 
-    private val imageProcessor = ImageProcessor.Builder()
-        .add(ResizeOp(INPUT_SIZE, INPUT_SIZE, ResizeOp.ResizeMethod.BILINEAR))
-        .build()
+    // ─── Inicialização ───────────────────────────────────────────────────────
 
     fun initialize() {
-        try {
-            val model = FileUtil.loadMappedFile(context, MODEL_FILE)
-            val options = Interpreter.Options().apply { numThreads = 4 }
-            interpreter = Interpreter(model, options)
-            Log.d("ChessDetector", "Model loaded successfully")
-        } catch (e: Exception) {
-            Log.e("ChessDetector", "Failed to load model: ${e.message}")
-        }
+        yoloModel.initialize()
+        piecesClassifier.initialize()
     }
+    
+    fun isReady(): Boolean = yoloModel.isReady()
+
+    // ─── Pipeline Principal ──────────────────────────────────────────────────
 
     /**
-     * Run inference on a camera bitmap.
+     * Processar um frame da câmara e detetar o tabuleiro de xadrez.
      *
-     * Adapt the output parsing below to match your model's actual output shape.
-     * Current assumption: model outputs a [1, 8, 8, 13] tensor (one-hot per square).
+     * @param bitmap Frame da câmara (qualquer tamanho).
+     * @return Resultado com top-down, 64 quadrados e cantos, ou null.
      */
-    fun detect(bitmap: Bitmap): DetectionResult? {
-        val interp = interpreter ?: return null
+    fun detect(bitmap: Bitmap): BoardSegmentationResult? {
+        // 1. Inferência YOLO
+        val yoloResult = yoloModel.runInference(bitmap)
 
-        // Prepare input
-        val tensorImage = TensorImage.fromBitmap(bitmap)
-        val processedImage = imageProcessor.process(tensorImage)
-        val inputBuffer: ByteBuffer = processedImage.buffer
-
-        // Output buffer: [1][8][8][13]
-        val output = Array(1) { Array(GRID_SIZE) { Array(GRID_SIZE) { FloatArray(NUM_CLASSES) } } }
-
-        interp.run(inputBuffer, output)
-
-        // Parse output: pick argmax per square
-        val board = Array(GRID_SIZE) { row ->
-            IntArray(GRID_SIZE) { col ->
-                val scores = output[0][row][col]
-                scores.indices.maxByOrNull { scores[it] } ?: PieceLabels.EMPTY
-            }
+        // 2. Extrair cantos da máscara
+        var corners: FloatArray? = null
+        if (yoloResult != null) {
+            corners = maskProcessor.findCorners(yoloResult, bitmap.width, bitmap.height)
         }
 
-        // Average top-class confidence as a proxy for overall confidence
-        val avgConfidence = board.flatMap { row ->
-            row.map { label ->
-                output[0][board.indexOf(row)][row.indexOf(label)][label]
+        // 3. Fallback: reutilizar últimos cantos se a IA piscar
+        if (corners == null) {
+            if (stabilizer.hasState) {
+                stabilizer.markFail()
+                corners = stabilizer.lastCorners
+                if (corners != null) {
+                    Log.d(TAG, "Fallback para últimos cantos estáveis")
+                }
             }
-        }.average().toFloat()
+            if (corners == null) return null
+        }
 
-        return DetectionResult(board, avgConfidence)
+        // 4. Estabilizar (EMA + rejeição de saltos)
+        val stableCorners = stabilizer.updateCorners(corners)
+
+        // 5. Transformar para top-down (UMA ÚNICA homografia)
+        val topDown = warper.warpToTopDown(bitmap, stableCorners) ?: return null
+
+        // 6. Extrair 64 quadrados
+        val squares = warper.extractSquares(topDown)
+
+        // 7. Classificar peças (White / Black / Empty)
+        piecesClassifier.classifySquares(squares)
+
+        return BoardSegmentationResult(topDown, squares, stableCorners, yoloResult?.confidence ?: 0f)
     }
 
+    // ─── Reset ───────────────────────────────────────────────────────────────
+
+    fun resetStabilizer() = stabilizer.reset()
+
     fun close() {
-        interpreter?.close()
-        interpreter = null
+        yoloModel.close()
+        piecesClassifier.close()
     }
 }

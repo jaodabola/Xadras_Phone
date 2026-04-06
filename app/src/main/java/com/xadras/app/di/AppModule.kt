@@ -2,6 +2,7 @@ package com.xadras.app.di
 
 import android.content.Context
 import com.xadras.app.ml.ChessBoardDetector
+import com.xadras.app.ml.FenTracker
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,5 +18,11 @@ object AppModule {
     @Singleton
     fun provideChessBoardDetector(@ApplicationContext context: Context): ChessBoardDetector {
         return ChessBoardDetector(context).also { it.initialize() }
+    }
+
+    @Provides
+    @Singleton
+    fun provideFenTracker(): FenTracker {
+        return FenTracker()
     }
 }

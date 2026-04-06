@@ -20,9 +20,8 @@ class AuthInterceptor @Inject constructor(
 
     /** Caminhos que não requerem autenticação. */
     private val noAuthPaths = listOf(
-        "auth/users/",             // Registo
-        "auth/token/login/",       // Login
-        "accounts/guest/",         // Criar guest
+        "/token/login/",       // Login
+        "/accounts/guest/",    // Criar guest
     )
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -30,7 +29,11 @@ class AuthInterceptor @Inject constructor(
         val path = request.url.encodedPath
 
         // Saltar cabeçalho de auth para endpoints públicos
-        if (noAuthPaths.any { path.contains(it) }) {
+        val isAuthRoute = noAuthPaths.any { path.contains(it) } || 
+                          (path.contentEquals("/api/users/") && request.method.equals("POST", ignoreCase = true)) ||
+                          (path.contentEquals("/api/users") && request.method.equals("POST", ignoreCase = true))
+
+        if (isAuthRoute) {
             return chain.proceed(request)
         }
 

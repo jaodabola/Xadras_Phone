@@ -47,6 +47,11 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // Evitar compressão do modelo TFLite pelo AAPT
+    androidResources {
+        noCompress += "tflite"
+    }
 }
 
 dependencies {
@@ -86,12 +91,19 @@ dependencies {
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
 
-    // TensorFlow Lite (deteção de peças no tabuleiro)
+    // TensorFlow Lite (deteção de tabuleiro)
     implementation(libs.tflite.runtime)
     implementation(libs.tflite.support)
+    implementation(libs.tflite.gpu)
+
+    // OpenCV (Estabilização extrema Xadras_Vision)
+    implementation(libs.opencv.android)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // Chess library (validação de movimentos e FEN)
+    implementation(libs.chesslib)
 
     // Testes
     testImplementation(libs.junit)
