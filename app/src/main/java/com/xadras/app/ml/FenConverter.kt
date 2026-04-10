@@ -1,40 +1,31 @@
 package com.xadras.app.ml
 
-import android.graphics.Bitmap
-import android.graphics.Color
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.abs
 
 /**
  * Conversor de recortes de quadrados para notação FEN.
  *
- * Integra-se com o [FenTracker] para rastrear movimentos
- * via deteção diferencial de ocupância e validação por regras de xadrez.
+ * Integra-se com o [FenTracker] para rastrear movimentos,
+ * auto-corrigir takebacks, e manter o histórico completo
+ * de FENs da partida para envio ao servidor.
  *
  * Pipeline:
- *   Frame → 64 quadrados → FenTracker.update() → FEN validado
- *
- * O FenTracker auto-calibra o threshold de ocupância no primeiro frame,
- * usando o conhecimento de que ranks 1-2 e 7-8 estão ocupados
- * e ranks 3-6 estão vazios na posição inicial.
+ *   Frame → 64 quadrados classificados → FenTracker.update() → FEN validado
  */
 @Singleton
 class FenConverter @Inject constructor(
     private val tracker: FenTracker
 ) {
 
-    /** Indica se o modelo de classificação de peças está disponível. */
-    private var pieceModelLoaded = false
-
     /**
      * Processar um frame de 64 quadrados e atualizar o FEN.
      *
      * Delega ao FenTracker que:
-     * 1. Auto-calibra o threshold no primeiro frame
-     * 2. Deteta mudanças de ocupância frame-a-frame
-     * 3. Valida movimentos via chesslib
-     * 4. Atualiza o FEN interno
+     * 1. Auto-alinha a rotação da câmara (0º/90º/180º/270º)
+     * 2. Valida movimentos via chesslib
+     * 3. Deteta e corrige takebacks (até 2 jogadas para trás)
+     * 4. Atualiza o FEN e o histórico interno
      *
      * @param squares Mapa de nome algébrico → recorte do quadrado
      * @return String FEN atualizado
@@ -43,27 +34,26 @@ class FenConverter @Inject constructor(
         return tracker.update(squares) ?: tracker.currentFen
     }
 
-    /**
-     * Obter o FEN atual sem processar um novo frame.
-     */
+    /** Obter o FEN atual sem processar um novo frame. */
     fun getCurrentFen(): String = tracker.currentFen
 
-    /**
-     * Obter texto de estado para mostrar na UI.
-     */
+    /** Obter texto de estado para mostrar na UI. */
     fun getStatusText(): String = tracker.statusText
 
-    /**
-     * Verificar se o tracker está calibrado e a rastrear.
-     */
+    /** Verificar se o tracker está calibrado e a rastrear. */
     fun isTracking(): Boolean = tracker.isCalibrated
 
     /**
-     * Verificar se a posição detetada parece válida.
-     *
-     * Verifica se o número de quadrados é 64 — a validação
-     * real dos movimentos é feita pelo FenTracker via chesslib.
+     * Obter o histórico completo de FENs da partida.
+     * Útil para enviar ao servidor e permitir revisão posterior.
+     * Este histórico é auto-corrigido em tempo real pelo takeback.
      */
+    fun getFenHistory(): List<String> = tracker.fenHistory.toList()
+
+    /** Número total de jogadas registadas na partida. */
+    fun getMoveCount(): Int = tracker.fenHistory.size - 1
+
+    /** Verificar se a posição detetada parece válida. */
     fun isValidPosition(squares: Map<String, SquareCrop>): Boolean {
         return squares.size == 64
     }
@@ -75,10 +65,4 @@ class FenConverter @Inject constructor(
     fun reset() {
         tracker.reset()
     }
-
-    /**
-     * Indica se o modelo de classificação de peças está carregado.
-     * Enquanto não estiver, o FEN é gerado por deteção diferencial.
-     */
-    fun isPieceModelLoaded(): Boolean = pieceModelLoaded
 }

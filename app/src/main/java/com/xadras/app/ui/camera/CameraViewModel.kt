@@ -76,7 +76,7 @@ class CameraViewModel @Inject constructor(
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
     /** Intervalo mínimo (ms) entre inferências consecutivas. */
-    private val INFERENCE_INTERVAL_MS = 300L
+    private val INFERENCE_INTERVAL_MS = 100L
 
     private var inferenceJob: Job? = null
     private var lastSentFen: String = ""
@@ -283,9 +283,8 @@ class CameraViewModel @Inject constructor(
 
     private fun transmitFen(fen: String) {
         val sessionId = _uiState.value.sessionId ?: return
-        viewModelScope.launch {
-            gameRepository.sendFenRest(fen, sessionId)
-        }
+        // WebSocket direto — ~10x mais rápido que REST
+        gameRepository.sendFenWs(fen, sessionId)
     }
 
     override fun onCleared() {

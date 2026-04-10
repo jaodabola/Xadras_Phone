@@ -9,18 +9,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Rastreador Inteligente de FEN.
- * 
- * Este módulo funde a Classificação Visual do modelo IA com as regras lógicas de xadrez,
- * de modo a filtrar ativamente ruído visual (ex: a mão do utilizador a interferir).
- * 
- * Lógica de Prevenção de Oclusão (Ghosts):
- * 1. Compara o mundo físico 64 classificado com a memória interna (tabuleiro).
- * 2. Se detetar desalinhamentos (fantasma/mão à frente), tenta explicar
- *    o desalinhamento através das jogadas válidas de xadrez (`board.legalMoves()`).
- * 3. Se nenhuma jogada válida conseguir explicar o "lixo" que a câmara viu (ex: uma mão), 
- *    descarta o frame assumindo ser oclusão passageira.
- * 4. Ao confirmar a mesma jogada legal por 2 frames consecutivos (temporal smoothing em 1fps), aceita a jogada.
+ * Rastreador Inteligente de FEN com Auto-Correção de Jogadas (Takeback).
+ *
+ * Capacidades:
+ * 1. Classificação Visual → Regras de Xadrez (filtra mãos/oclusões)
+ * 2. Auto-Alinhamento de Rotação da Câmara (0º/90º/180º/270º)
+ * 3. Temporal Smoothing (confirmar jogada por N frames consecutivos)
+ * 4. Takeback Automático: Se a câmara detetar que uma jogada anterior
+ *    foi desfeita fisicamente na mesa, o sistema desfaz internamente
+ *    até 2 jogadas e tenta re-explicar o estado visual com uma jogada
+ *    legal alternativa. O histórico de FENs é corrigido em tempo real.
  */
 @Singleton
 class FenTracker @Inject constructor() {
@@ -28,9 +26,24 @@ class FenTracker @Inject constructor() {
     companion object {
         private const val TAG = "FenTracker"
 
-        // Em 1 FPS da câmara, são precisos 2 frames (~2 segundos) sustentados
-        // a visualizar a mesma jogada legal para registar e enviar via API sem falso-positivos
-        private const val CHANGE_FRAMES = 2 
+        /** Frames consecutivos para confirmar uma jogada (1 = imediato, protegido por regras). */
+        private const val CHANGE_FRAMES = 1
+
+        /** Máximo de jogadas a desfazer ao tentar um takeback. */
+        private const val MAX_UNDO_DEPTH = 2
+
+        /** Score mínimo absoluto para aceitar um TAKEBACK (precisa de mais certeza). */
+        private const val TAKEBACK_ACCEPT_SCORE = 52
+
+        /** Score para considerar que NADA mudou (1 casa de ruído tolerada). */
+        private const val NO_CHANGE_SCORE = 63
+
+        /** Score para aceitar um takeback puro (posição recuada sem nova jogada).
+         *  Mais baixo que NO_CHANGE porque o classificador pode ter ruído. */
+        private const val PURE_TAKEBACK_SCORE = 60
+
+        /** Margem mínima de melhoria para aceitar uma jogada forward. */
+        private const val FORWARD_MARGIN = 1
     }
 
     // ─── Estado Interno (Memória Verdadeira do Jogo) ─────────────────────────
@@ -39,6 +52,12 @@ class FenTracker @Inject constructor() {
     var currentFen: String = board.fen
         private set
 
+    /** Histórico completo de FENs da partida (para enviar ao servidor). */
+    val fenHistory: MutableList<String> = mutableListOf(board.fen)
+
+    /** Histórico de movimentos internos (para poder desfazer). */
+    private val moveHistory: MutableList<Move> = mutableListOf()
+
     val statusText: String
         get() {
             val moveNum = board.moveCounter
@@ -46,23 +65,27 @@ class FenTracker @Inject constructor() {
             return "Jogada $moveNum ($turn) - $pendingCount/$CHANGE_FRAMES conf."
         }
 
-    val isCalibrated: Boolean = true // Agora auto-calibra automaticamente por inteligência de classificador
-
+    val isCalibrated: Boolean = true
 
     // ─── Estado Transitório do Smoothing de Oclusão ──────────────────────────
 
+    private var pendingMoveStr: String? = null
     private var pendingMove: Move? = null
     private var pendingCount: Int = 0
+    private var pendingUndoDepth: Int = 0
 
     // Offset de Rotação (0=0º, 1=90º, 2=180º, 3=270º)
     private var boardRotation = 0
+    private var pendingRotation = -1
+    private var rotationConfirmCount = 0
+    private val ROTATION_CONFIRM_FRAMES = 4  // Exigir 4 frames (~1s) antes de rodar
 
     // ─── Processamento Principal por Frame ───────────────────────────────────
 
     fun update(squaresMap: Map<String, SquareCrop>): String? {
         if (squaresMap.size < 64) return currentFen
 
-        // 1. Procurar Oclusões ou Rotações da Câmara (Auto-Alinhamento do Eixo Físico)
+        // ── 1. Calcular scores para todas as 4 rotações ─────────────────────
         val scores = IntArray(4)
         val predictionsByRot = Array(4) { rot ->
             val preds = extractPredictedStates(squaresMap, rot)
@@ -72,99 +95,225 @@ class FenTracker @Inject constructor() {
 
         val bestRotScore = scores.maxOrNull() ?: 0
         val bestRot = scores.indexOf(bestRotScore)
+        val currentRotScore = scores[boardRotation]
 
-        // Limite dinâmico: Se estamos no início de um jogo (Posição Inicial), somos muito flexíveis
-        // porque basta perceber qual a grande massa de peças e de que lado está. (Pode ter falhas do YOLO)
-        // Se já estamos a meio do jogo, exigimos precisão quase perfeita (58/64) para não rodar a matriz acidentalmente.
-        val isStartingPos = board.fen.startsWith("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-        val thresholdForRotation = if (isStartingPos) 38 else 58
+        Log.d(TAG, "📊 Scores: rot0=${scores[0]} rot1=${scores[1]} rot2=${scores[2]} rot3=${scores[3]} | Atual=$boardRotation($currentRotScore) Melhor=$bestRot($bestRotScore)")
 
-        // Se a perspetiva mudou radicalmente mas há uma rotação que faz match ótimo
-        if (bestRot != boardRotation && bestRotScore >= thresholdForRotation) {
-            Log.i(TAG, "📷 [Auto-Alinhamento] Eixo Trancado! Rotação: $bestRot (Score: $bestRotScore/64). Limite: $thresholdForRotation")
-            boardRotation = bestRot
-            resetPending()
+        // ── 2. Auto-Alinhamento de Rotação (RELATIVO) ───────────────────────
+        // A rotação correta tem SEMPRE o score mais alto.
+        // Se outra rotação pontua significativamente melhor → câmara rodou.
+        val rotationMargin = bestRotScore - currentRotScore
+
+        if (bestRot != boardRotation && rotationMargin >= 4) {
+            if (pendingRotation == bestRot) {
+                rotationConfirmCount++
+                if (rotationConfirmCount >= ROTATION_CONFIRM_FRAMES) {
+                    Log.i(TAG, "📷 [ROTAÇÃO ACEITE] $boardRotation → $bestRot (margem=$rotationMargin, score=$bestRotScore)")
+                    boardRotation = bestRot
+                    pendingRotation = -1
+                    rotationConfirmCount = 0
+                    resetPending()
+                }
+            } else {
+                pendingRotation = bestRot
+                rotationConfirmCount = 1
+                Log.d(TAG, "📷 [Rotação pendente] candidata=$bestRot margem=$rotationMargin (1/$ROTATION_CONFIRM_FRAMES)")
+            }
+        } else {
+            if (pendingRotation != -1) Log.d(TAG, "📷 [Rotação cancelada] margem insuficiente ($rotationMargin)")
+            pendingRotation = -1
+            rotationConfirmCount = 0
         }
 
-        // 2. Usar a matriz visual retificada contra o ângulo atual
+        // BLOQUEIO: Se uma rotação está pendente, NÃO processar jogadas.
+        if (pendingRotation != -1) {
+            return currentFen
+        }
+
+        // ── 3. Usar a matriz visual retificada ──────────────────────────────
         val predictedStates = predictionsByRot[boardRotation]
         val currentScore = scores[boardRotation]
 
-        // Se a pontuação for muito alta (e.g. 62/64), é porque o jogo mal mudou, 
-        // e se alguma casa difere, é uma oclusão pequena, então ignoramos.
-        if (currentScore >= 62) {
+        // Nada mudou? (perfeito ou 1 casa de ruído)
+        if (currentScore >= NO_CHANGE_SCORE) {
             resetPending()
             return currentFen
         }
 
-        // 3. Testa todas as JOGADAS VÁLIDAS DO XADREZ na posição atual e vê e resolve o mistério visual
+        // ── 4. TAKEBACK primeiro (prioridade!) ──────────────────────────────
+        // Se o score atual é muito baixo, é mais provável ser takeback do que forward.
+        for (undoDepth in 1..MAX_UNDO_DEPTH) {
+            val prevIndex = fenHistory.size - 1 - undoDepth
+            if (prevIndex < 0) break
+
+            val testBoard = Board()
+            testBoard.loadFromFen(fenHistory[prevIndex])
+            val recededScore = scoreBoardAgainstPrediction(testBoard, predictedStates)
+
+            Log.d(TAG, "🔄 Takeback depth=$undoDepth: recededScore=$recededScore (precisa ≥$PURE_TAKEBACK_SCORE)")
+
+            // Takeback puro (posição voltou atrás)
+            if (recededScore >= PURE_TAKEBACK_SCORE && recededScore > currentScore + 1) {
+                Log.i(TAG, "🔄 [TAKEBACK PURO] depth=$undoDepth score=$recededScore")
+                return confirmTakeback(undoDepth, newMove = null)
+            }
+
+            // Takeback + nova jogada diferente
+            val takebackResult = findBestLegalMove(testBoard, predictedStates)
+            if (takebackResult != null && takebackResult.score >= TAKEBACK_ACCEPT_SCORE && takebackResult.score > currentScore + 2) {
+                Log.i(TAG, "🔄 [TAKEBACK + JOGADA] depth=$undoDepth move=${takebackResult.move} score=${takebackResult.score}")
+                return confirmTakeback(undoDepth, newMove = takebackResult.move)
+            }
+        }
+
+        // ── 5. Tentar jogada forward (normal) ───────────────────────────────
+        val forwardResult = findBestLegalMove(board, predictedStates)
+
+        if (forwardResult != null && forwardResult.score > currentScore + FORWARD_MARGIN) {
+            Log.i(TAG, "✅ [FORWARD] ${forwardResult.move} score=${forwardResult.score} (atual=$currentScore, margem=${forwardResult.score - currentScore})")
+            return confirmMove(forwardResult.move, undoDepth = 0)
+        }
+
+        // ── 6. Nada explica a imagem → Oclusão ─────────────────────────────
+        Log.d(TAG, "🚫 [Oclusão] currentScore=$currentScore, bestForward=${forwardResult?.score ?: -1}")
+        resetPending()
+
+        return currentFen
+    }
+
+    // ─── Confirmação de Jogada Normal (Forward) ─────────────────────────────
+
+    private fun confirmMove(move: Move, undoDepth: Int): String? {
+        val moveStr = move.toString()
+        
+        if (pendingMoveStr == moveStr && pendingUndoDepth == undoDepth) {
+            pendingCount++
+            if (pendingCount >= CHANGE_FRAMES) {
+                // Aplicar undo se necessário (takeback)
+                if (undoDepth > 0) {
+                    applyUndo(undoDepth)
+                }
+
+                // Aplicar a jogada (usar o Move do pendingMove que foi criado no board correto,
+                // ou recriá-lo a partir do board atual caso tenha havido undo)
+                val actualMove = Move(move.from, move.to)
+                board.doMove(actualMove)
+                currentFen = board.fen
+                moveHistory.add(actualMove)
+                fenHistory.add(currentFen)
+
+                if (undoDepth > 0) {
+                    Log.i(TAG, "🔄 [Takeback + Jogada]: Desfeitas $undoDepth jogadas → Nova: $actualMove → $currentFen")
+                } else {
+                    Log.i(TAG, "🤖 [Movimento]: $actualMove → $currentFen")
+                }
+
+                resetPending()
+            }
+        } else {
+            pendingMoveStr = moveStr
+            pendingMove = move
+            pendingUndoDepth = undoDepth
+            pendingCount = 1
+        }
+        return currentFen
+    }
+
+    // ─── Confirmação de Takeback ─────────────────────────────────────────────
+
+    private fun confirmTakeback(undoDepth: Int, newMove: Move?): String? {
+        if (newMove != null) {
+            return confirmMove(newMove, undoDepth)
+        }
+
+        // Takeback puro (jogador desfez mas ainda não jogou de novo)
+        if (pendingMoveStr == null && pendingMove == null && pendingUndoDepth == undoDepth) {
+            pendingCount++
+            if (pendingCount >= CHANGE_FRAMES) {
+                applyUndo(undoDepth)
+                Log.i(TAG, "🔄 [Takeback Puro]: Desfeitas $undoDepth jogadas → $currentFen")
+                resetPending()
+            }
+        } else {
+            pendingMoveStr = null
+            pendingMove = null
+            pendingUndoDepth = undoDepth
+            pendingCount = 1
+        }
+        return currentFen
+    }
+
+    // ─── Aplicar Undo no Board e Históricos ─────────────────────────────────
+
+    private fun applyUndo(depth: Int) {
+        for (i in 0 until depth) {
+            if (fenHistory.size > 1 && moveHistory.isNotEmpty()) {
+                moveHistory.removeAt(moveHistory.lastIndex)
+                fenHistory.removeAt(fenHistory.lastIndex)
+            }
+        }
+        // Reconstruir o board a partir do último FEN válido (seguro, sem undoMove)
+        board.loadFromFen(fenHistory.last())
+        currentFen = board.fen
+    }
+
+    // ─── Reset ──────────────────────────────────────────────────────────────
+
+    fun reset() {
+        board.loadFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        currentFen = board.fen
+        moveHistory.clear()
+        fenHistory.clear()
+        fenHistory.add(currentFen)
+        boardRotation = 0
+        resetPending()
+        Log.i(TAG, "Tracker de FEN resetado para posição inicial.")
+    }
+
+    private fun resetPending() {
+        pendingMoveStr = null
+        pendingMove = null
+        pendingUndoDepth = 0
+        pendingCount = 0
+    }
+
+    // ─── Utilitários Internos ────────────────────────────────────────────────
+
+    private data class MoveCandidate(val move: Move, val score: Int)
+
+    /**
+     * Encontra a jogada legal com melhor score visual a partir de um board.
+     * Usa doMove/undoMove no mesmo objeto para evitar GC pressure
+     * (instanciar centenas de Board() por frame causava lag no Android).
+     */
+    private fun findBestLegalMove(testBoard: Board, predicted: Map<Square, SquareState>): MoveCandidate? {
         var bestMove: Move? = null
         var bestScore = -1
 
-        for (move in board.legalMoves()) {
-            val testBoard = board.clone()
+        val legalMoves = testBoard.legalMoves()
+        for (move in legalMoves) {
             testBoard.doMove(move)
+            val score = scoreBoardAgainstPrediction(testBoard, predicted)
+            testBoard.undoMove()
             
-            val score = scoreBoardAgainstPrediction(testBoard, predictedStates)
-
             if (score > bestScore) {
                 bestScore = score
                 bestMove = move
             }
         }
 
-        // 4. Aceitar, Rejeitar ou Aguardar
-        // Se a melhor jogada explicar a imagem melhor do que não jogar nada 
-        // em pleno (pelo menos mais 2 pontos e > 60 score total significa match de contexto brutal)
-        if (bestMove != null && bestScore > currentScore + 1) {
-            if (pendingMove == bestMove) {
-                pendingCount++
-                if (pendingCount >= CHANGE_FRAMES) {
-                    
-                    // EFETUAR JOGADA TOTALMENTE VALIDADA E LIVRE DE OCLUSÕES E RUÍDOS DE MÃO DA CÂMARA!
-                    board.doMove(bestMove)
-                    currentFen = board.fen
-                    Log.i(TAG, "🤖 [A.I. Movimento Sucesso]: $bestMove → $currentFen")
-                    resetPending()
-                }
-            } else {
-                // Primeira vez que vemos esta jogada, vamos aguardar pela frame seguinte p/ confirmar
-                pendingMove = bestMove
-                pendingCount = 1
-            }
-        } else {
-            // Nem o board atual nem qualquer jogada explica o lixo que lá apareceu. 
-            // Oclusão severa identificada => Descarta Lixo.
-            Log.d(TAG, "🚫 [A.I. Oclusão / Ruído]: Mão ou ruído detetado, não obedece a regras. Ignorando quadro.")
-            resetPending()
-        }
-
-        return currentFen
+        return if (bestMove != null) MoveCandidate(bestMove, bestScore) else null
     }
-
-    fun reset() {
-        board.loadFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-        currentFen = board.fen
-        resetPending()
-        Log.i(TAG, "Tracker de FEN resetado para posição inicial.")
-    }
-
-    private fun resetPending() {
-        pendingMove = null
-        pendingCount = 0
-    }
-
-    // ─── Utilitários Internos ────────────────────────────────────────────────
 
     /**
-     * Compara um testBoard de xadrez absoluto contra o mapa de estados classificados 
-     * pela rede neuronal, conferindo +1 ponto por cada acerto. O score máximo é 64.
+     * Compara um board contra o mapa de estados classificados pela IA.
+     * +1 ponto por cada casa que coincide. Score máximo = 64.
      */
     private fun scoreBoardAgainstPrediction(testBoard: Board, predicted: Map<Square, SquareState>): Int {
         var score = 0
         for ((sq, visualState) in predicted) {
             val piece = testBoard.getPiece(sq)
-            
+
             val expectedState = when {
                 piece == Piece.NONE -> SquareState.EMPTY
                 piece.name.contains("WHITE") -> SquareState.WHITE
@@ -188,8 +337,8 @@ class FenTracker @Inject constructor() {
     }
 
     /**
-     * Mapeia os crops visuais para a matriz do tabuleiro (A1 a H8), 
-     * aplicando virtualmente uma rotação no ângulo da ótica do espectador (0º, 90º, 180º, 270º).
+     * Mapeia os crops visuais para a matriz do tabuleiro (A1 a H8),
+     * aplicando virtualmente uma rotação no ângulo da ótica do espectador.
      */
     private fun extractPredictedStates(
         squaresMap: Map<String, SquareCrop>,
@@ -197,8 +346,6 @@ class FenTracker @Inject constructor() {
     ): Map<Square, SquareState> {
         val result = mutableMapOf<Square, SquareState>()
         for ((name, crop) in squaresMap) {
-            
-            // Coluna (a-h) = 0-7, Linha (1-8) = 0-7 original do array
             val fileIdx = name[0] - 'a'
             val rankIdx = name[1] - '1'
 
@@ -209,10 +356,10 @@ class FenTracker @Inject constructor() {
                 3 -> Pair(7 - rankIdx, fileIdx)
                 else -> Pair(fileIdx, rankIdx)
             }
-            
+
             val newFile = 'a' + mapped.first
             val newRank = '1' + mapped.second
-            
+
             val sqName = "$newFile$newRank".uppercase()
             val sq = parseSquare(sqName)
             if (sq != null) {
