@@ -20,8 +20,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // URL base do backend — alterar para o IP/domínio real em produção
-        buildConfigField("String", "BASE_URL", "\"http://192.168.1.18:8000/api/\"")
-        buildConfigField("String", "WS_BASE_URL", "\"ws://192.168.1.18:8000/ws/\"")
+        buildConfigField("String", "BASE_URL", "\"http://192.168.1.8:8000/api/\"")
+        buildConfigField("String", "WS_BASE_URL", "\"ws://192.168.1.8:8000/ws/\"")
     }
 
     buildTypes {

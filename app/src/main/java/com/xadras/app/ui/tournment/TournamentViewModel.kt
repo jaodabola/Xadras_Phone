@@ -43,13 +43,22 @@ class TournamentViewModel @Inject constructor(
         }
     }
 
-    fun joinTournament(tournamentId: Int) {
+    fun joinTournament(tournamentId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             when (val result = tournamentRepository.joinTournament(tournamentId)) {
-                is Resource.Success -> _uiState.value = _uiState.value.copy(
-                    isLoading = false, joinedGameId = result.data.game_id
-                )
+                is Resource.Success -> {
+                    // Após sucesso, atualizamos a lista localmente para esconder o botão
+                    val updatedList = _uiState.value.tournaments.map {
+                        if (it.id == tournamentId) it.copy(is_participant = true, is_joined = true, participant_count = it.participant_count + 1)
+                        else it
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        tournaments = updatedList,
+                        joinedGameId = result.data.game_id
+                    )
+                }
                 is Resource.Error   -> _uiState.value = _uiState.value.copy(
                     isLoading = false, error = result.message
                 )

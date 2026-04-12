@@ -60,11 +60,9 @@ class TournamentFragment : Fragment() {
                         Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
                     }
 
-                    // When join succeeds, navigate to camera with broadcast mode
+                    // When join succeeds, show message
                     state.joinedGameId?.let { gameId ->
-                        val action = TournamentFragmentDirections
-                            .actionTournamentToCamera(gameId = gameId, broadcast = true)
-                        findNavController().navigate(action)
+                        Snackbar.make(binding.root, "Inscrito com sucesso! Use o site para jogar.", Snackbar.LENGTH_LONG).show()
                         viewModel.clearJoinedGame()
                     }
                 }

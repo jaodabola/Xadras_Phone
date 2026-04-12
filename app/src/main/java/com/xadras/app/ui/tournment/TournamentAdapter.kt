@@ -5,6 +5,8 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import com.xadras.app.data.model.Tournament
 import com.xadras.app.databinding.ItemTournamentBinding
 
@@ -25,12 +27,22 @@ class TournamentAdapter(
                 else       -> tournament.status
             }
             binding.tvParticipants.text = buildString {
-                append("${tournament.participants_count}")
+                append("👥 ")
+                append("${tournament.participant_count}")
                 tournament.max_participants?.let { append("/$it") }
                 append(" jogadores")
             }
+            binding.btnJoin.isVisible = !tournament.is_participant && !tournament.is_joined
             binding.btnJoin.isEnabled = tournament.status == "active" || tournament.status == "upcoming"
-            binding.btnJoin.setOnClickListener { onJoin(tournament) }
+            binding.btnJoin.setOnClickListener {
+                AlertDialog.Builder(binding.root.context)
+                    .setTitle("Aviso")
+                    .setMessage("Para jogar ou assistir ao torneio, deve utilizar o nosso site oficial.")
+                    .setPositiveButton("OK") { _, _ ->
+                        onJoin(tournament)
+                    }
+                    .show()
+            }
         }
     }
 

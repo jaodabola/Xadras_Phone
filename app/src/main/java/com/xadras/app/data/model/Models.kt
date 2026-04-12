@@ -131,18 +131,18 @@ data class MoveResponse(
 
 /** Informação de um torneio. */
 data class Tournament(
-    val id: Int,
+    val id: String,
     val name: String,
     val description: String,
-    val start_date: String,
-    val end_date: String?,
     val status: String,
-    val participants_count: Int,
-    val max_participants: Int?
+    val participant_count: Int,
+    val max_participants: Int?,
+    val is_participant: Boolean = false,
+    val is_joined: Boolean = false
 )
 
 /** Pedido para juntar-se a um torneio. */
-data class JoinTournamentRequest(val tournament_id: Int)
+data class JoinTournamentRequest(val tournament_id: String)
 
 /** Resposta ao juntar-se a um torneio. */
 data class JoinTournamentResponse(

@@ -80,11 +80,11 @@ interface ApiService {
     /** Juntar-se a um torneio. */
     @POST("tournaments/{id}/join/")
     suspend fun joinTournament(
-        @Path("id") tournamentId: Int,
+        @Path("id") tournamentId: String,
         @Body request: JoinTournamentRequest
     ): Response<JoinTournamentResponse>
 
     /** Obter os jogos de um torneio. */
     @GET("tournaments/{id}/games/")
-    suspend fun getTournamentGames(@Path("id") tournamentId: Int): Response<List<TournamentGame>>
+    suspend fun getTournamentGames(@Path("id") tournamentId: String): Response<List<TournamentGame>>
 }
