@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
     android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="24dp">
@@ -14,20 +14,20 @@
         <!-- Logo + title -->
         <ImageView
             android:id="@+id/ivLogo"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="48dp"
+            android:contentDescription="@string/content_desc_logo"
             android:src="@drawable/ic_knight"
-            android:contentDescription="Xadras logo"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="48dp" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/tvAppName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Xadras"
+            android:text="@string/app_name"
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -40,7 +40,7 @@
             android:id="@+id/tvSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bem-vindo de volta"
+            android:text="@string/login_title"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -53,7 +53,7 @@
             android:id="@+id/tvHint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Inicie sessão para continuar a jogar"
+            android:text="@string/login_subtitle"
             android:textColor="@color/text_secondary"
             app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
             app:layout_constraintStart_toStartOf="parent"
@@ -65,7 +65,7 @@
             android:id="@+id/tvUsernameLabel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Nome de utilizador"
+            android:text="@string/label_username"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
             app:layout_constraintTop_toBottomOf="@id/tvHint"
@@ -89,9 +89,10 @@
                 android:id="@+id/etUsername"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="O seu utilizador"
+                android:imeOptions="actionNext"
                 android:inputType="text"
-                android:imeOptions="actionNext" />
+                android:textColor="@color/text_primary"
+                android:visibility="visible" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Password -->
@@ -99,7 +100,7 @@
             android:id="@+id/tvPasswordLabel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Palavra-passe"
+            android:text="@string/label_password"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
             app:layout_constraintTop_toBottomOf="@id/tilUsername"
@@ -123,9 +124,9 @@
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="A sua palavra-passe"
+                android:imeOptions="actionDone"
                 android:inputType="textPassword"
-                android:imeOptions="actionDone" />
+                android:textColor="@color/text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Progress bar -->
@@ -144,7 +145,7 @@
             android:id="@+id/btnLogin"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Entrar"
+            android:text="@string/btn_login"
             android:textColor="@color/white"
             android:backgroundTint="@color/brown_primary"
             app:layout_constraintTop_toBottomOf="@id/progressBar"
@@ -158,7 +159,7 @@
             android:id="@+id/tvOr"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ou"
+            android:text="@string/label_or"
             android:textColor="@color/text_secondary"
             app:layout_constraintTop_toBottomOf="@id/btnLogin"
             app:layout_constraintStart_toStartOf="parent"
@@ -171,7 +172,7 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Jogar como Convidado"
+            android:text="@string/btn_guest"
             android:textColor="@color/text_primary"
             app:strokeColor="@color/brown_primary"
             app:layout_constraintTop_toBottomOf="@id/tvOr"
@@ -185,7 +186,7 @@
             android:id="@+id/tvRegister"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Não tem conta? Registar-se"
+            android:text="@string/no_account"
             android:textColor="@color/brown_primary"
             android:textStyle="bold"
             app:layout_constraintTop_toBottomOf="@id/btnGuest"

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
     android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="24dp">
@@ -17,7 +17,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@drawable/ic_knight"
-            android:contentDescription="Xadras logo"
+            android:contentDescription="@string/content_desc_logo"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -27,7 +27,7 @@
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Criar conta"
+            android:text="@string/register_title"
             android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -40,7 +40,7 @@
             android:id="@+id/tvSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Junte-se à comunidade Xadras"
+            android:text="@string/register_subtitle"
             android:textColor="@color/text_secondary"
             app:layout_constraintTop_toBottomOf="@id/tvTitle"
             app:layout_constraintStart_toStartOf="parent"
@@ -52,7 +52,7 @@
             android:id="@+id/tvUsernameLabel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Nome de utilizador"
+            android:text="@string/label_username"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
             app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
@@ -75,8 +75,9 @@
                 android:id="@+id/etUsername"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Escolha um nome de utilizador"
+                android:hint="@string/hint_username"
                 android:inputType="text"
+                android:textColor="@color/text_primary"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -85,7 +86,7 @@
             android:id="@+id/tvEmailLabel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Email"
+            android:text="@string/label_email"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
             app:layout_constraintTop_toBottomOf="@id/tilUsername"
@@ -108,8 +109,9 @@
                 android:id="@+id/etEmail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="O seu email"
+                android:hint="@string/hint_email"
                 android:inputType="textEmailAddress"
+                android:textColor="@color/text_primary"
                 android:imeOptions="actionNext" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -118,7 +120,7 @@
             android:id="@+id/tvPasswordLabel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Palavra-passe"
+            android:text="@string/label_password"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
             app:layout_constraintTop_toBottomOf="@id/tilEmail"
@@ -142,8 +144,9 @@
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Crie uma palavra-passe"
+                android:hint="@string/hint_password"
                 android:inputType="textPassword"
+                android:textColor="@color/text_primary"
                 android:imeOptions="actionDone" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -161,7 +164,7 @@
             android:id="@+id/btnRegister"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Criar conta"
+            android:text="@string/btn_register"
             android:textColor="@color/white"
             android:backgroundTint="@color/brown_primary"
             android:padding="14dp"
@@ -174,7 +177,7 @@
             android:id="@+id/tvLogin"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Já tem conta? Iniciar sessão"
+            android:text="@string/have_account"
             android:textColor="@color/brown_primary"
             android:textStyle="bold"
             app:layout_constraintTop_toBottomOf="@id/btnRegister"

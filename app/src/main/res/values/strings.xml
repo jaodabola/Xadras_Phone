@@ -1,21 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Xadras</string>
+    <string name="content_desc_logo">Xadras logo</string>
 
     <!-- Auth -->
     <string name="login_title">Bem-vindo de volta</string>
     <string name="login_subtitle">Inicie sessão para continuar a jogar</string>
     <string name="label_username">Nome de utilizador</string>
     <string name="label_password">Palavra-passe</string>
+    <string name="label_email">Email</string>
+    <string name="hint_username">Escolha um nome de utilizador</string>
+    <string name="hint_email">O seu email</string>
+    <string name="hint_password">Crie uma palavra-passe</string>
     <string name="btn_login">Entrar</string>
     <string name="btn_guest">Jogar como Convidado</string>
+    <string name="label_or">ou</string>
     <string name="no_account">Não tem conta? Registar-se</string>
     <string name="register_title">Criar conta</string>
+    <string name="register_subtitle">Junte-se à comunidade Xadras</string>
     <string name="btn_register">Criar conta</string>
     <string name="have_account">Já tem conta? Iniciar sessão</string>
 
     <!-- Home -->
+    <string name="welcome_title">Bem-vindo</string>
     <string name="welcome_back">Olá, %1$s</string>
+    <string name="home_subtitle">O que queres fazer hoje?</string>
+    <string name="emoji_camera">📷</string>
+    <string name="emoji_trophy">🏆</string>
+    <string name="home_card_camera_title">Detetar Tabuleiro</string>
+    <string name="home_card_camera_desc">Aponte a câmara para um tabuleiro físico e veja-o em modo digital</string>
+    <string name="home_card_tournaments_title">Torneios</string>
+    <string name="home_card_tournaments_desc">Participa em torneios e transmite as tuas partidas ao vivo</string>
     <string name="btn_open_camera">Abrir câmara</string>
     <string name="btn_tournaments">Ver torneios</string>
     <string name="btn_logout">Sair</string>
