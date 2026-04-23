@@ -39,7 +39,8 @@ class AuthViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _authState.value = Resource.Loading
-            _authState.value = authRepository.register(username, email, password)
+            // Enviamos a password duas vezes (re_password = password) 
+            _authState.value = authRepository.register(username, email, password, password)
         }
     }
 

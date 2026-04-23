@@ -15,7 +15,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -48,6 +48,10 @@ android {
         jvmTarget = "17"
     }
 
+    kotlin {
+        jvmToolchain(17)
+    }
+
     // Evitar compressão do modelo TFLite pelo AAPT
     androidResources {
         noCompress += "tflite"
@@ -76,6 +80,8 @@ dependencies {
 
     // Hilt (injeção de dependências)
     implementation(libs.hilt.android)
+    implementation(libs.navigation.fragment.ktx)
+    implementation(libs.navigation.ui.ktx)
     ksp(libs.hilt.compiler)
 
     // Retrofit + OkHttp (comunicação REST com o backend)

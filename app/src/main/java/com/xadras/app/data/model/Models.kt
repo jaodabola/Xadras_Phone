@@ -17,7 +17,8 @@ data class TokenLoginResponse(
 data class RegisterRequest(
     val username: String,
     val email: String,
-    val password: String
+    val password: String,
+    val re_password: String
 )
 
 /** Resposta de registo — dados do utilizador criado. */
@@ -131,24 +132,25 @@ data class MoveResponse(
 
 /** Informação de um torneio. */
 data class Tournament(
-    val id: Int,
+    val id: String, // UUID no backend
     val name: String,
     val description: String,
-    val start_date: String,
-    val end_date: String?,
+    val start_date: String?,
+    val end_date: String? = null,
     val status: String,
-    val participants_count: Int,
+    val participant_count: Int, // Coincidir com o backend
     val max_participants: Int?
 )
 
 /** Pedido para juntar-se a um torneio. */
-data class JoinTournamentRequest(val tournament_id: Int)
+data class JoinTournamentRequest(val tournament_id: String)
 
 /** Resposta ao juntar-se a um torneio. */
 data class JoinTournamentResponse(
-    val success: Boolean,
-    val game_id: Int?,
-    val message: String?
+    val id: String? = null, // ID do participante criado
+    val tournament: String? = null,
+    val user: Int? = null,
+    val message: String? = null
 )
 
 /** Informação de um jogo num torneio. */

@@ -2,15 +2,36 @@
     <!-- Base application theme. -->
     <style name="Theme.Xadras" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimary">@color/brown_primary</item>
+        <item name="colorPrimaryVariant">@color/brown_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Forçar a cor da ActionBar -->
+        <item name="actionBarStyle">@style/Widget.Xadras.ActionBar</item>
+        <item name="titleTextColor">@color/white</item>
+        <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
+
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
+        <item name="colorSecondary">@color/board_dark</item>
+        <item name="colorSecondaryVariant">@color/board_dark</item>
         <item name="colorOnSecondary">@color/black</item>
+
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+    </style>
+
+    <!-- Estilo específico para a ActionBar para garantir a cor -->
+    <style name="Widget.Xadras.ActionBar" parent="Widget.AppCompat.ActionBar.Solid">
+        <item name="background">@color/brown_primary</item>
+        <item name="titleTextStyle">@style/TextAppearance.Xadras.Widget.ActionBar.Title</item>
+    </style>
+
+    <style name="TextAppearance.Xadras.Widget.ActionBar.Title" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="DrawerArrowStyle" parent="@style/Widget.AppCompat.DrawerArrowToggle">
+        <item name="spinBars">true</item>
+        <item name="color">@color/white</item>
     </style>
 </resources>

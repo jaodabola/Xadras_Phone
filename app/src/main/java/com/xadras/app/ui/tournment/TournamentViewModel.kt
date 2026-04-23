@@ -15,7 +15,7 @@ data class TournamentUiState(
     val tournaments: List<Tournament> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val joinedGameId: Int? = null
+    val joinedGameId: Int? = null // Mantido como Int para o ID do Jogo (Game)
 )
 
 @HiltViewModel
@@ -43,12 +43,12 @@ class TournamentViewModel @Inject constructor(
         }
     }
 
-    fun joinTournament(tournamentId: Int) {
+    fun joinTournament(tournamentId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             when (val result = tournamentRepository.joinTournament(tournamentId)) {
                 is Resource.Success -> _uiState.value = _uiState.value.copy(
-                    isLoading = false, joinedGameId = result.data.game_id
+                    isLoading = false, joinedGameId = null // O backend atual não devolve game_id imediato
                 )
                 is Resource.Error   -> _uiState.value = _uiState.value.copy(
                     isLoading = false, error = result.message

@@ -22,7 +22,7 @@ class TournamentRepository @Inject constructor(private val api: ApiService) {
         }
     }
 
-    suspend fun joinTournament(tournamentId: Int): Resource<JoinTournamentResponse> {
+    suspend fun joinTournament(tournamentId: String): Resource<JoinTournamentResponse> {
         return try {
             val response = api.joinTournament(tournamentId, JoinTournamentRequest(tournamentId))
             if (response.isSuccessful) Resource.Success(response.body()!!)
@@ -32,7 +32,7 @@ class TournamentRepository @Inject constructor(private val api: ApiService) {
         }
     }
 
-    suspend fun getTournamentGames(tournamentId: Int): Resource<List<TournamentGame>> {
+    suspend fun getTournamentGames(tournamentId: String): Resource<List<TournamentGame>> {
         return try {
             val response = api.getTournamentGames(tournamentId)
             if (response.isSuccessful) Resource.Success(response.body()!!)

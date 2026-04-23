@@ -75,7 +75,6 @@
                 android:id="@+id/etUsername"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/hint_username"
                 android:inputType="text"
                 android:textColor="@color/text_primary"
                 android:imeOptions="actionNext" />
@@ -109,7 +108,6 @@
                 android:id="@+id/etEmail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/hint_email"
                 android:inputType="textEmailAddress"
                 android:textColor="@color/text_primary"
                 android:imeOptions="actionNext" />
@@ -144,7 +142,6 @@
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/hint_password"
                 android:inputType="textPassword"
                 android:textColor="@color/text_primary"
                 android:imeOptions="actionDone" />

@@ -43,9 +43,9 @@ class AuthRepository @Inject constructor(
     /**
      * Registo — cria utilizador e faz login automático.
      */
-    suspend fun register(username: String, email: String, password: String): Resource<Unit> {
+    suspend fun register(username: String, email: String, password: String, re_password: String): Resource<Unit> {
         return try {
-            val response = api.register(RegisterRequest(username, email, password))
+            val response = api.register(RegisterRequest(username, email, password, re_password))
             if (response.isSuccessful) {
                 // Após registo, fazer login para obter o token
                 return login(username, password)

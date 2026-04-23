@@ -26,7 +26,7 @@ object BoardConfig {
     const val SQUARE_PX = 70            // 560 / 8
 
     // ─── Estabilizador ───────────────────────────────────────────────────────
-    const val EMA_ALPHA = 0.35f         // Convergência rápida (igual ao harmonica)
+    const val EMA_ALPHA = 0.65f         // Convergência rápida (igual ao harmonica)
     const val MAX_LOST_FRAMES = 15      // Meio segundo de memória (~30fps)
     const val MAX_CORNER_JUMP_PX = 80f  // Rejeitar saltos > 80px entre frames
 

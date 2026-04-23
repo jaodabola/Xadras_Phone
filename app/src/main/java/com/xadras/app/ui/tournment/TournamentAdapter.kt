@@ -25,7 +25,7 @@ class TournamentAdapter(
                 else       -> tournament.status
             }
             binding.tvParticipants.text = buildString {
-                append("${tournament.participants_count}")
+                append("${tournament.participant_count}")
                 tournament.max_participants?.let { append("/$it") }
                 append(" jogadores")
             }
