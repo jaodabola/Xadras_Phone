@@ -18,18 +18,19 @@ class TournamentAdapter(
         fun bind(tournament: Tournament) {
             binding.tvName.text = tournament.name
             binding.tvDescription.text = tournament.description
-            binding.tvStatus.text = when (tournament.status) {
-                "upcoming" -> "🕐 Em breve"
-                "active"   -> "🟢 A decorrer"
-                "finished" -> "🏁 Terminado"
-                else       -> tournament.status
+            binding.tvStatus.text = when (tournament.status.uppercase()) {
+                "REGISTRATION" -> "Inscrições"
+                "STARTED"      -> "🟢 A decorrer"
+                "FINISHED"     -> "Terminado"
+                else           -> tournament.status
             }
             binding.tvParticipants.text = buildString {
                 append("${tournament.participant_count}")
                 tournament.max_participants?.let { append("/$it") }
                 append(" jogadores")
             }
-            binding.btnJoin.isEnabled = tournament.status == "active" || tournament.status == "upcoming"
+            val status = tournament.status.uppercase()
+            binding.btnJoin.isEnabled = status == "REGISTRATION" || status == "STARTED"
             binding.btnJoin.setOnClickListener { onJoin(tournament) }
         }
     }

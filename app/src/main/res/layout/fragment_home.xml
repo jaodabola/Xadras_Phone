@@ -88,11 +88,12 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/emoji_camera"
-                android:textSize="32sp" />
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_camera"
+                android:contentDescription="@string/home_card_camera_title"
+                app:tint="@color/white" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -102,14 +103,6 @@
                 android:textStyle="bold"
                 android:textColor="@color/white"
                 android:layout_marginTop="8dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/home_card_camera_desc"
-                android:textColor="#CCffffff"
-                android:textSize="13sp"
-                android:layout_marginTop="4dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCamera"
@@ -141,11 +134,12 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/emoji_trophy"
-                android:textSize="32sp" />
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_torneio"
+                android:contentDescription="@string/home_card_tournaments_title"
+                app:tint="@color/black" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -155,14 +149,6 @@
                 android:textStyle="bold"
                 android:textColor="@color/text_primary"
                 android:layout_marginTop="8dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/home_card_tournaments_desc"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:layout_marginTop="4dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnTournaments"
