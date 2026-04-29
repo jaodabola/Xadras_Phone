@@ -20,8 +20,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // URL base do backend — usar HTTP/WS para ligação local por IP
-        buildConfigField("String", "BASE_URL", "\"https://reflex-affront-motivator.ngrok-free.dev/api/\"")
-        buildConfigField("String", "WS_BASE_URL", "\"wss://reflex-affront-motivator.ngrok-free.dev/ws/\"")
+        buildConfigField("String", "BASE_URL", "\"https://xadras.pt/api/\"")
+        buildConfigField("String", "WS_BASE_URL", "\"wss://xadras.pt/ws/\"")
     }
 
     buildTypes {
