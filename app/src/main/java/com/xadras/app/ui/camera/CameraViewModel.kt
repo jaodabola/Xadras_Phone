@@ -75,8 +75,13 @@ class CameraViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
-    /** Intervalo mínimo (ms) entre inferências consecutivas. */
-    private val INFERENCE_INTERVAL_MS = 100L
+    /**
+     * Delay artificial entre inferências (ms).
+     * Definido a 0 para máxima velocidade — o ritmo real de captura
+     * é controlado pelo intervalo de 250ms no CameraFragment.
+     * Aumentar apenas se o telemóvel sobreaquecer.
+     */
+    private val INFERENCE_INTERVAL_MS = 0L
 
     private var inferenceJob: Job? = null
     private var lastSentFen: String = ""
@@ -143,7 +148,7 @@ class CameraViewModel @Inject constructor(
         if (!_uiState.value.modelReady) return
         if (inferenceJob?.isActive == true) return
         inferenceJob = viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
-            delay(INFERENCE_INTERVAL_MS)
+            if (INFERENCE_INTERVAL_MS > 0L) delay(INFERENCE_INTERVAL_MS)
 
             // Executar deteção de tabuleiro via YOLO
             val result = detector.detect(bitmap)

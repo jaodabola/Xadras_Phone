@@ -25,7 +25,23 @@ class YoloBoardModel(private val context: Context) {
     private var interpreter: Interpreter? = null
     private var gpuDelegate: GpuDelegate? = null
     private var outputBuffers: HashMap<Int, Any>? = null
-    private var inputBuffer: ByteBuffer? = null
+
+    // ── Buffers pré-alocados (zero alocações por frame) ──────────────────────
+
+    /** Buffer de input float32 para uma imagem 640×640 RGB. */
+    private val inputBuffer: ByteBuffer = ByteBuffer
+        .allocateDirect(1 * BoardConfig.INPUT_SIZE * BoardConfig.INPUT_SIZE * 3 * 4)
+        .apply { order(ByteOrder.nativeOrder()) }
+
+    /** Bitmap de trabalho fixo 640×640 reutilizado em cada frame via Canvas. */
+    private val resizedBitmap: Bitmap =
+        Bitmap.createBitmap(BoardConfig.INPUT_SIZE, BoardConfig.INPUT_SIZE, Bitmap.Config.ARGB_8888)
+    private val scaleCanvas = android.graphics.Canvas(resizedBitmap)
+    private val scaleDst = android.graphics.RectF(
+        0f, 0f, BoardConfig.INPUT_SIZE.toFloat(), BoardConfig.INPUT_SIZE.toFloat())
+
+    /** Array de pixels reutilizável para normalização. */
+    private val pixelBuffer = IntArray(BoardConfig.INPUT_SIZE * BoardConfig.INPUT_SIZE)
 
     // Dimensões dos tensores de saída detetadas em runtime
     var detTensorIdx = 0; private set
@@ -85,18 +101,13 @@ class YoloBoardModel(private val context: Context) {
         val interp = interpreter ?: return null
         val buffers = outputBuffers ?: return null
 
-        if (inputBuffer == null) {
-            inputBuffer = ByteBuffer.allocateDirect(
-                1 * BoardConfig.INPUT_SIZE * BoardConfig.INPUT_SIZE * 3 * 4
-            ).apply { order(ByteOrder.nativeOrder()) }
-        }
-
-        preprocessBitmap(bitmap, inputBuffer!!)
+        // Pré-processar para inputBuffer reutilizável (sem alocações)
+        preprocessBitmap(bitmap)
 
         (buffers[detTensorIdx] as ByteBuffer).rewind()
         (buffers[protoTensorIdx] as ByteBuffer).rewind()
 
-        interp.runForMultipleInputsOutputs(arrayOf(inputBuffer!!), buffers)
+        interp.runForMultipleInputsOutputs(arrayOf(inputBuffer), buffers)
 
         val detBuffer = buffers[detTensorIdx] as ByteBuffer
         val protoBuffer = buffers[protoTensorIdx] as ByteBuffer
@@ -145,18 +156,22 @@ class YoloBoardModel(private val context: Context) {
         return map
     }
 
-    private fun preprocessBitmap(bitmap: Bitmap, buffer: ByteBuffer) {
-        val resized = Bitmap.createScaledBitmap(bitmap, BoardConfig.INPUT_SIZE, BoardConfig.INPUT_SIZE, true)
-        buffer.rewind()
-        val pixels = IntArray(BoardConfig.INPUT_SIZE * BoardConfig.INPUT_SIZE)
-        resized.getPixels(pixels, 0, BoardConfig.INPUT_SIZE, 0, 0, BoardConfig.INPUT_SIZE, BoardConfig.INPUT_SIZE)
-        for (pixel in pixels) {
-            buffer.putFloat(Color.red(pixel) / 255f)
-            buffer.putFloat(Color.green(pixel) / 255f)
-            buffer.putFloat(Color.blue(pixel) / 255f)
+    /**
+     * Pré-processar bitmap para o inputBuffer reutilizável.
+     * Usa resizedBitmap e pixelBuffer pré-alocados — zero alocações por frame.
+     */
+    private fun preprocessBitmap(bitmap: Bitmap) {
+        // Escalar via Canvas para o resizedBitmap fixo 640×640
+        scaleCanvas.drawBitmap(bitmap, null, scaleDst, null)
+        inputBuffer.rewind()
+        resizedBitmap.getPixels(pixelBuffer, 0, BoardConfig.INPUT_SIZE, 0, 0,
+            BoardConfig.INPUT_SIZE, BoardConfig.INPUT_SIZE)
+        for (pixel in pixelBuffer) {
+            inputBuffer.putFloat(Color.red(pixel)   / 255f)
+            inputBuffer.putFloat(Color.green(pixel) / 255f)
+            inputBuffer.putFloat(Color.blue(pixel)  / 255f)
         }
-        buffer.rewind()
-        if (resized !== bitmap) resized.recycle()
+        inputBuffer.rewind()
     }
 
     private fun parseBestDetection(detBuffer: ByteBuffer, protoBuffer: ByteBuffer): YoloResult? {
@@ -205,5 +220,6 @@ class YoloBoardModel(private val context: Context) {
         interpreter = null
         gpuDelegate?.close()
         gpuDelegate = null
+        if (!resizedBitmap.isRecycled) resizedBitmap.recycle()
     }
 }

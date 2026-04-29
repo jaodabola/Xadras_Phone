@@ -19,9 +19,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // URL base do backend — alterar para o IP/domínio real em produção
-        buildConfigField("String", "BASE_URL", "\"http://192.168.1.18:8000/api/\"")
-        buildConfigField("String", "WS_BASE_URL", "\"ws://192.168.1.18:8000/ws/\"")
+        // URL base do backend — usar HTTP/WS para ligação local por IP
+        buildConfigField("String", "BASE_URL", "\"https://reflex-affront-motivator.ngrok-free.dev/api/\"")
+        buildConfigField("String", "WS_BASE_URL", "\"wss://reflex-affront-motivator.ngrok-free.dev/ws/\"")
     }
 
     buildTypes {

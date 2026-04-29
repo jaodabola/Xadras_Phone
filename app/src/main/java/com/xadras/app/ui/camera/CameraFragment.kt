@@ -125,7 +125,7 @@ class CameraFragment : Fragment() {
                         // Capturar e processar a 4 Frames Por Segundo (250 ms)
                         // Isto é rápido o suficiente para parecer instantâneo na web, 
                         // mas muito mais brando que 30 FPS para poupar bateria e não aquecer.
-                        if (currentTime - lastAnalyzeTime >= 250) {
+                        if (currentTime - lastAnalyzeTime >= 100) {
                             lastAnalyzeTime = currentTime
                             
                             val rawBitmap = imageProxy.toBitmap()
