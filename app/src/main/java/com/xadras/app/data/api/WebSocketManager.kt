@@ -90,7 +90,19 @@ class WebSocketManager @Inject constructor(private val client: OkHttpClient) {
 
         Log.d("WebSocket", "A ligar a $url ($label)")
 
-        val request = Request.Builder().url(url).build()
+        // Extrair dinamicamente a origem a partir do URL do WebSocket para passar no AllowedHostsOriginValidator do Django
+        val origin = try {
+            val uri = java.net.URI(url)
+            val scheme = if (uri.scheme == "wss") "https" else "http"
+            "$scheme://${uri.host}"
+        } catch (e: Exception) {
+            "https://xadras.pt"
+        }
+
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Origin", origin)
+            .build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
 
             override fun onOpen(ws: WebSocket, response: Response) {
